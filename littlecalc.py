@@ -34,23 +34,29 @@ class NoSuchAlias(CalculatorError):
         super.__init__(self, 'no such alias: {}'.format(name))
 
 
-class Operation:
-
-    def __init__(self, func, help_text=None):
-        self.func = func
-        self.help = help_text
-
-    def __call__(self, *args, **kwargs):
-        self.func(*args, **kwargs)
-
-
-
 class Module:
 
     def __init__(self, name, operations=None, aliases=None):
         self.name = name
         self.operations = {} if operations is None else operations
         self.aliases = {} if aliases is None else aliases
+
+    def add_operation(self, name, operation):
+        operation.name = name
+        self.operations[name] = operation
+
+    def add_alias(self, alias, operation_name):
+        if operation_name in self.aliases:
+            # TODO: Create proper error for this: Alias an alias
+            raise CalculatorError('Aliasing an alias is not allowed.')
+
+        self.aliases[alias] = operation_name
+
+    def register(self, name):
+        def wrapper(f):
+            self.add_operation(name, f)
+            return f
+        return wrapper
 
 
 class Calculator:
@@ -117,7 +123,6 @@ class Calculator:
                 do_operation(word)
             else:
                 print('UNKNOWN INPUT:', word)
-
 
 
 def main():
