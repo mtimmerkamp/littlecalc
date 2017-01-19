@@ -16,6 +16,8 @@ where "sto" pulls one word from the stream to use it as a parameter.
 
 from collections import deque, ChainMap
 import decimal
+import importlib
+import importlib.util
 
 
 class CalculatorError(Exception):
@@ -25,13 +27,13 @@ class CalculatorError(Exception):
 class NoSuchOperation(CalculatorError):
 
     def __init__(self, name):
-        super.__init__(self, 'no such operation: {}'.format(name))
+        super().__init__('no such operation: {}'.format(name))
 
 
 class NoSuchAlias(CalculatorError):
 
     def __init__(self, name):
-        super.__init__(self, 'no such alias: {}'.format(name))
+        super().__init__('no such alias: {}'.format(name))
 
 
 class Module:
@@ -42,6 +44,7 @@ class Module:
         self.aliases = {} if aliases is None else aliases
 
     def add_operation(self, name, operation):
+        print('adding operation:', name, operation)
         operation.name = name
         self.operations[name] = operation
 
@@ -59,10 +62,36 @@ class Module:
         return wrapper
 
 
+class Stack:
+
+    def __init__(self, stack=None):
+        self.stack = deque(stack or [])
+
+    def pop(self, count=None):
+        """Return the last entry pushed onto the stack. If ``count``
+        is an int, a list of the last ``count`` entries is returned,
+        where the first item is the topmost entry on the stack."""
+        if count is None:
+            return self.stack.pop()
+        elif isinstance(count, int):
+            return [self.stack.pop() for _ in range(count)]
+        else:
+            raise TypeError('int or None required')
+
+    def push(self, *values):
+        """Push ``values`` to the stack. The last item of ``values``
+        will be put on top of the stack."""
+        for value in values:
+            self.stack.append(value)
+
+    def __str__(self):
+        return str(self.stack)
+
+
 class Calculator:
 
     def __init__(self):
-        self.stack = deque()
+        self.stack = Stack()
         self.modules = []
 
         self.operations = ChainMap()
@@ -72,7 +101,8 @@ class Calculator:
         self.modules.append(module)
 
         self.operations.maps.insert(0, module.operations)
-        self.aliases.maps.insert(1, module.operations)  # first alias map is always user-defined.
+        # first alias map is always user-defined.
+        self.aliases.maps.insert(1, module.aliases)
 
     def unload_module(self, module):
         self.aliases.maps.remove(module.aliases)
@@ -99,7 +129,7 @@ class Calculator:
             raise NoSuchOperation(name)
 
     def do_operation(self, name):
-        """Resolves aliases and """
+        """Resolves aliases and invokes the desired operation."""
         if name in self.aliases:
             name = self.resolve_alias(name)
         op = self.get_operation(name)
@@ -118,19 +148,28 @@ class Calculator:
         for word in input_stream:
             if self.is_number(word):
                 x = self.convert_number(word)
-                self.stack.append(x)
+                self.stack.push(x)
             elif self.is_operation(word) or self.is_alias(word):
-                do_operation(word)
+                self.do_operation(word)
             else:
                 print('UNKNOWN INPUT:', word)
 
 
 def main():
+    module_name = 'builtin_module'
+    file_path = './builtin_module.py'
+
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
     calc = Calculator()
+    calc.load_module(module.builtin_module)
     while True:
         user_input = input('>>> ')
 
         calc.parse_input(user_input)
+        print(calc.stack)
 
 if __name__ == '__main__':
     main()
