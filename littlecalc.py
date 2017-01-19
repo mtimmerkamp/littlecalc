@@ -36,6 +36,10 @@ class NoSuchAlias(CalculatorError):
         super().__init__('no such alias: {}'.format(name))
 
 
+class AliasingError(CalculatorError):
+    pass
+
+
 class Module:
 
     def __init__(self, name, operations=None, aliases=None):
@@ -44,14 +48,15 @@ class Module:
         self.aliases = {} if aliases is None else aliases
 
     def add_operation(self, name, operation):
-        print('adding operation:', name, operation)
         operation.name = name
         self.operations[name] = operation
 
     def add_alias(self, alias, operation_name):
         if operation_name in self.aliases:
             # TODO: Create proper error for this: Alias an alias
-            raise CalculatorError('Aliasing an alias is not allowed.')
+            raise AliasingError(
+                'Aliasing an alias is not allowed. ({} -> {})'.format(
+                    alias, operation_name))
 
         self.aliases[alias] = operation_name
 
@@ -76,7 +81,7 @@ class Stack:
         elif isinstance(count, int):
             return [self.stack.pop() for _ in range(count)]
         else:
-            raise TypeError('int or None required')
+            raise ValueError('int or None required')
 
     def push(self, *values):
         """Push ``values`` to the stack. The last item of ``values``
