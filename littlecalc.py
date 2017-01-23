@@ -15,6 +15,7 @@ where "sto" pulls one word from the stream to use it as a parameter.
 
 
 from collections import deque, ChainMap
+import abc
 import decimal
 import importlib
 import importlib.util
@@ -30,41 +31,91 @@ class NoSuchOperation(CalculatorError):
         super().__init__('no such operation: {}'.format(name))
 
 
-class NoSuchAlias(CalculatorError):
+class NotNumeric(CalculatorError):
 
-    def __init__(self, name):
-        super().__init__('no such alias: {}'.format(name))
+    def __init__(self, word):
+        super().__init__('word is not numeric: "{}"'.format(word))
 
 
 class AliasingError(CalculatorError):
     pass
 
 
+class Numeric(metaclass=abc.ABCMeta):
+
+    @classmethod
+    @abc.abstractmethod
+    def is_numeric(cls, word: str) -> bool:
+        return False
+
+    @classmethod
+    @abc.abstractmethod
+    def convert_numeric(cls, word: str) -> object:
+        return None
+
+
 class Module:
 
     def __init__(self, name, operations=None, aliases=None):
         self.name = name
-        self.operations = {} if operations is None else operations
-        self.aliases = {} if aliases is None else aliases
+        self.calculator = None
 
-    def add_operation(self, name, operation):
-        operation.name = name
-        self.operations[name] = operation
+        self.operations = operations or {}
+        self.aliases = aliases or {}
+
+    def add_operation(self, name, operation=None):
+        """Add an operation to this module. If ``operation`` is
+        ``None``, a decorator function will be returted. That way
+        it is possible to use a call of this function as decorator
+        like::
+
+            @module.add_operation('add')
+            def add(module, calc):
+                return 0
+
+        where a new operation called ``add`` wildecimall be added to
+        ``module`` as if::
+
+            module.add_operation('add', add)
+
+        was invoked.
+        """
+        if operation is None:  # use as decorator
+            def decorator(func):
+                return self.add_operation(name, func)
+            return decorator
+        else:
+            operation.name = name
+            self.operations[name] = operation
+            return operation
 
     def add_alias(self, alias, operation_name):
         if operation_name in self.aliases:
-            # TODO: Create proper error for this: Alias an alias
-            raise AliasingError(
-                'Aliasing an alias is not allowed. ({} -> {})'.format(
-                    alias, operation_name))
+            raise AliasingError(('Aliasing an alias is not allowed.'
+                ' ({} -> {})').format(alias, operation_name))
 
         self.aliases[alias] = operation_name
 
-    def register(self, name):
-        def wrapper(f):
-            self.add_operation(name, f)
-            return f
-        return wrapper
+    def load_module(self, calculator):
+        self.calculator = calculator
+
+    def unload_module(self):
+        self.calculator = None
+
+    def is_executable(self, operation):
+        return operation in self.operations or operation in self.aliases
+
+    def do_operation(self, operation):
+        try:
+            if operation in self.aliases:
+                alias = self.aliases[operation]
+                op = self.operations[alias]
+            else:
+                op = self.operations[operation]
+        except KeyError:
+            raise NoSuchOperation(operation)
+
+        op(self, self.calculator)
 
 
 class Stack:
@@ -93,71 +144,102 @@ class Stack:
         return str(self.stack)
 
 
+class ConsumingInputStream:
+
+    def __init__(self, iterable):
+        self.stream = deque(iterable)
+
+    def peek(self):
+        return self.stream[0]
+
+    def pop(self):
+        return self.stream.popleft()
+
+    def has_next(self):
+        return len(self.stream) > 0
+
+    def __len__(self):
+        return len(self.stream)
+
+    def __iter__(self):
+        while True:
+            try:
+                value = self.pop()
+                yield value
+            except IndexError:
+                raise StopIteration
+
+
 class Calculator:
 
     def __init__(self):
         self.stack = Stack()
-        self.modules = []
+        self.storage = dict()
 
-        self.operations = ChainMap()
-        self.aliases = ChainMap({})
+        self.input_stream = None
+
+        self.modules = []
+        self.numeric_types = []
 
     def load_module(self, module):
+        module.load_module(self)
         self.modules.append(module)
 
-        self.operations.maps.insert(0, module.operations)
-        # first alias map is always user-defined.
-        self.aliases.maps.insert(1, module.aliases)
-
     def unload_module(self, module):
-        self.aliases.maps.remove(module.aliases)
-        self.operations.maps.operations.remove(module.operations)
-
+        module.unload_module(self)
         self.modules.remove(module)
 
-    def is_alias(self, alias):
-        return alias in self.aliases
+    def register_numeric_type(self, cls):
+        self.numeric_types.append(cls)
 
-    def is_operation(self, op):
-        return op in self.operations
+    def deregister_numeric_type(self, cls):
+        self.numeric_types.remove(cls)
 
-    def resolve_alias(self, alias):
-        try:
-            return self.aliases[alias]
-        except KeyError:
-            raise NoSuchAlias(alias)
+    def is_numeric(self, word):
+        for numeric_type in self.numeric_types:
+            if numeric_type.is_numeric(word):
+                return True
+        return False
 
-    def get_operation(self, name):
-        try:
-            return self.operations[name]
-        except KeyError:
-            raise NoSuchOperation(name)
+    def to_numeric(self, word):
+        for numeric_type in self.numeric_types:
+            if numeric_type.is_numeric(word):
+                return numeric_type.to_numeric(word)
+        raise NotNumeric(word)
+
+    def is_executable(self, word):
+        for module in self.modules:
+            if module.is_executable(word):
+                return True
+        return False
+
+    def get_module(self, operation):
+        for module in self.modules:
+            if module.is_executable(operation):
+                return module
+        raise NoSuchOperation(operation)
 
     def do_operation(self, name):
-        """Resolves aliases and invokes the desired operation."""
-        if name in self.aliases:
-            name = self.resolve_alias(name)
-        op = self.get_operation(name)
-
-        op(self)
-
-    def is_number(self, s):
-        return s.isdigit()
+        """Invokes the desired operation."""
+        module = self.get_module(name)
+        module.do_operation(name)
 
     def convert_number(self, s):
         return decimal.Decimal(s)
 
     def parse_input(self, input_):
-        input_stream = (word for word in input_.split())
+        self.input_stream = ConsumingInputStream(input_.split())
 
-        for word in input_stream:
-            if self.is_number(word):
-                x = self.convert_number(word)
+        for word in self.input_stream:
+            if self.is_numeric(word):
+                x = self.to_numeric(word)
                 self.stack.push(x)
-            elif self.is_operation(word) or self.is_alias(word):
+            elif self.is_executable(word):
                 self.do_operation(word)
             else:
                 print('UNKNOWN INPUT:', word)
+
+        self.input_stream = None
 
 
 def main():
@@ -169,7 +251,7 @@ def main():
     spec.loader.exec_module(module)
 
     calc = Calculator()
-    calc.load_module(module.builtin_module)
+    calc.load_module(module.get_modules(calc)[0])
     while True:
         user_input = input('>>> ')
 
