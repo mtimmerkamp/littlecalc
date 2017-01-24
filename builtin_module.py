@@ -1,8 +1,8 @@
-from littlecalc import Module, Numeric, CalculatorError
+from littlecalc import Module, NumericConverter, CalculatorError
 import decimal
 
 
-class DecimalNumeric(Numeric):
+class DecimalConverter(NumericConverter):
 
     @classmethod
     def is_numeric(cls, word):
@@ -25,12 +25,12 @@ class BuiltinModule(Module):
     def load_module(self, calc):
         super().load_module(calc)
 
-        calc.register_numeric_type(DecimalNumeric)
+        calc.register_numeric_type(DecimalConverter)
 
     def unload_module(self, calc):
         super().unload_module(calc)
 
-        calc.unregister_numeric_type(DecimalNumeric)
+        calc.unregister_numeric_type(DecimalConverter)
 
 
 module = BuiltinModule('builtin')

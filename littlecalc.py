@@ -41,7 +41,7 @@ class AliasingError(CalculatorError):
     pass
 
 
-class Numeric(metaclass=abc.ABCMeta):
+class NumericConverter(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
