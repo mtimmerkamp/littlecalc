@@ -14,8 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from littlecalc import Module, NumericConverter, CalculatorError
+import functools
+
 import decimal
+from littlecalc import Module, NumericConverter, CalculatorError
 
 
 class DecimalConverter(NumericConverter):
@@ -52,6 +54,8 @@ class BuiltinModule(Module):
 module = BuiltinModule('builtin')
 
 
+# special operations (e.g. stack)
+
 @module.add_operation('sto')
 def sto(module, calc):
     if calc.input_stream.has_next():
@@ -76,28 +80,111 @@ def rcl(module, calc):
 
 # basic mathematical operations
 
+def simple_arith_operation(arg_count):
+    """Create a decorator for a simple arithmetic function with one
+    result, consuming ``arg_count`` topmost values from stack.
+
+    Pop ``arg_count`` values from stack (see Stack.pop) and call
+    the function with these values as parameters. The return value
+    is pushed onto the stack.
+
+    The following function::
+
+        @simple_arith_operation(2)
+        def add(module, calc, x, y):
+            return y + x
+
+    is therefore equivalent to::
+
+        @simple_arith_operation(2)
+        def add(module, calc):
+            x, y = calc.stack.pop(2)
+            result = y + x
+            calc.stack.push(result)
+    """
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(module, calc):
+            values = calc.stack.pop(arg_count)
+            result = f(module, calc, *values)
+            calc.stack.push(result)
+        return wrapper
+    return decorator
+
+
 @module.add_operation('add', aliases=['+'])
-def add(module, calc):
-    x, y = calc.stack.pop(2)
-    calc.stack.push(y + x)
+@simple_arith_operation(2)
+def add(module, calc, x, y):
+    return y + x
 
 
 @module.add_operation('sub', aliases=['-'])
-def sub(module, calc):
-    x, y = calc.stack.pop(2)
-    calc.stack.push(y - x)
+@simple_arith_operation(2)
+def sub(module, calc, x, y):
+    return y - x
 
 
 @module.add_operation('mul', aliases=['*'])
-def mul(module, calc):
-    x, y = calc.stack.pop(2)
-    calc.stack.push(y * x)
+@simple_arith_operation(2)
+def mul(module, calc, x, y):
+    return y * x
 
 
 @module.add_operation('div', aliases=['/'])
-def div(module, calc):
-    x, y = calc.stack.pop(2)
-    calc.stack.push(y / x)
+@simple_arith_operation(2)
+def div(module, calc, x, y):
+    return y / x
+
+
+@module.add_operation('inv')
+@simple_arith_operation(1)
+def inv(module, calc, x):
+    return 1 / x
+
+
+@module.add_operation('sqrt')
+@simple_arith_operation(1)
+def sqrt(module, calc, x):
+    return x.sqrt()
+
+
+@module.add_operation('sqr', aliases=['^2'])
+@simple_arith_operation(1)
+def sqr(module, calc, x):
+    return x * x
+
+
+@module.add_operation('exp')
+@simple_arith_operation(1)
+def exp(module, calc, x):
+    return x.exp()
+
+
+@module.add_operation('ln')
+@simple_arith_operation(1)
+def ln(module, calc, x):
+    return x.ln()
+
+
+@module.add_operation('log10', aliases=['lg'])
+@simple_arith_operation(1)
+def log10(module, calc, x):
+    return x.log10()
+
+
+@module.add_operation('pow', aliases=['**', '^'])
+@simple_arith_operation(2)
+def pow(module, calc, x, y):
+    return x ** y
+
+
+@module.add_operation('log')
+@simple_arith_operation(2)
+def log(module, calc, x, y):
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # increase precision as the calculation is indirect
+        result = y.log10() / x.log10()
+    return +result  # round back to previous precision
 
 
 def get_modules(calc):
