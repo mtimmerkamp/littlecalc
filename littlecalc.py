@@ -80,11 +80,11 @@ class Module:
         self.operations = operations or {}
         self.aliases = aliases or {}
 
-    def add_operation(self, name, operation=None):
-        """Add an operation to this module. If ``operation`` is
-        ``None``, a decorator function will be returted. That way
-        it is possible to use a call of this function as decorator
-        like::
+    def add_operation(self, name, operation=None, aliases=None):
+        """Add an operation to this module and add aliases (if requested).
+        If ``operation`` is ``None``, a decorator function will be
+        returned. That way it is possible to use a call of this function
+        as decorator like::
 
             @module.add_operation('add')
             def add(module, calc):
@@ -99,27 +99,41 @@ class Module:
         """
         if operation is None:  # use as decorator
             def decorator(func):
-                return self.add_operation(name, func)
+                return self.add_operation(name, func, aliases=aliases)
             return decorator
         else:
             operation.name = name
             self.operations[name] = operation
+
+            if aliases is not None:
+                for alias in aliases:
+                    self.add_alias(alias, name)
+
             return operation
 
     def add_alias(self, alias, operation_name):
-        if operation_name in self.aliases:
-            raise AliasingError(('Aliasing an alias is not allowed.'
-                ' ({} -> {})').format(alias, operation_name))
+        """Add alias ``alias`` for operation ``operation_name``.
+        If ``operation_name`` is an alias, it will be resolved to
+        an operation.
+
+        Note: There is no protection against cyclic aliases which
+        will cause an infinite loop."""
+        while operation_name in self.aliases:
+            operation_name = self.aliases[operation_name]
 
         self.aliases[alias] = operation_name
 
     def load_module(self, calculator):
+        """Called when ``calculator`` loads this module."""
         self.calculator = calculator
 
     def unload_module(self):
+        """Called when this module is being unloaded."""
         self.calculator = None
 
     def is_executable(self, operation):
+        """Returns whether the passed operation is executable by
+        this module."""
         return operation in self.operations or operation in self.aliases
 
     def do_operation(self, operation):

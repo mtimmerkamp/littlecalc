@@ -76,34 +76,28 @@ def rcl(module, calc):
 
 # basic mathematical operations
 
-@module.add_operation('add')
+@module.add_operation('add', aliases=['+'])
 def add(module, calc):
     x, y = calc.stack.pop(2)
     calc.stack.push(y + x)
 
 
-@module.add_operation('sub')
+@module.add_operation('sub', aliases=['-'])
 def sub(module, calc):
     x, y = calc.stack.pop(2)
     calc.stack.push(y - x)
 
 
-@module.add_operation('mul')
+@module.add_operation('mul', aliases=['*'])
 def mul(module, calc):
     x, y = calc.stack.pop(2)
     calc.stack.push(y * x)
 
 
-@module.add_operation('div')
+@module.add_operation('div', aliases=['/'])
 def div(module, calc):
     x, y = calc.stack.pop(2)
     calc.stack.push(y / x)
-
-
-module.add_alias('+', 'add')
-module.add_alias('-', 'sub')
-module.add_alias('*', 'mul')
-module.add_alias('/', 'div')
 
 
 def get_modules(calc):
