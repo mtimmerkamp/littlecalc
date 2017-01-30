@@ -244,7 +244,15 @@ class Calculator:
                 return True
         return False
 
-    def get_module(self, operation):
+    def get_module(self, module_name):
+        """Return module with given name, return None if no such
+        module could be found."""
+        for module in self.modules:
+            if module.name == module_name:
+                return module
+        return None
+
+    def find_module_of_operation(self, operation):
         for module in self.modules:
             if module.is_executable(operation):
                 return module
@@ -252,11 +260,8 @@ class Calculator:
 
     def do_operation(self, name):
         """Invokes the desired operation."""
-        module = self.get_module(name)
+        module = self.find_module_of_operation(name)
         module.do_operation(name)
-
-    def convert_number(self, s):
-        return decimal.Decimal(s)
 
     def parse_input(self, input_):
         self.input_stream = ConsumingInputStream(input_.split())
@@ -274,15 +279,24 @@ class Calculator:
 
 
 def main():
+    calc = Calculator()
+
     module_name = 'builtin_module'
     file_path = './builtin_module.py'
 
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-
-    calc = Calculator()
     calc.load_module(module.get_modules(calc)[0])
+
+    module_name = 'constants'
+    file_path = './constants.py'
+
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    calc.load_module(module.get_modules(calc)[0])
+
     while True:
         user_input = input('>>> ')
 

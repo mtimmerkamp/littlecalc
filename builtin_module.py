@@ -187,32 +187,5 @@ def log(module, calc, x, y):
     return +result  # round back to previous precision
 
 
-@module.add_operation('pi')
-@simple_arith_operation(0)
-def pi(module, calc):
-    D = decimal.Decimal
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # increase precision for intermediate steps
-
-        # Gauss-Legendre algorithm
-        an, bn, tn, pn = D(1), 1/D(2).sqrt(), 1/D(4), 1
-        v, lastv = 0, 1
-        while v != lastv:
-            a, b, t, p = an, bn, tn, pn
-
-            an = (a + b) / 2
-            bn = (a * b).sqrt()
-            tn = t - p * (a - an)**2
-            pn = 2 * p
-
-            lastv = v
-            v = (an + bn)**2 / (4 * tn)
-            print(v)
-
-    return +v  # round back to previous precision
-
-
-
 def get_modules(calc):
     return [module]
-
