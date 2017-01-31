@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from littlecalc import Module, CalculatorError
+from littlecalc.core import Module, CalculatorError
 from decimal import localcontext
 
 
@@ -49,7 +49,7 @@ class ConstantsModule(Module):
         """Mapping a constant's id to a function that can calculate
         the constant up to the current precision of the calculator."""
 
-    def get(self, constant_id):
+    def get(self, calculator, constant_id):
         """Returns a numeric value for the requested constant. An
         ``UnknownConstantError`` is raised if an unknown constant
         id is passed. If an error occurs while calculating a
@@ -68,17 +68,14 @@ class ConstantsModule(Module):
                 value = self.fixed_constants[constant_id]
             except KeyError:
                 raise UnknownConstantError(constant_id)
-            return self.calculator.to_numeric(value)
+            return calculator.to_numeric(value)
 
         try:
-            return func(self.calculator)
+            return func(calculator)
         except Exception as err:
             raise ConstantCalculationError(
                 'Cannot calculate constant: "{}"'.format(constant_id)
             ) from err
-
-    def __getitem__(self, item):
-        return self.get(constant_id=item)
 
     def __contains__(self, item):
         return item in self.descriptions
@@ -167,7 +164,7 @@ def const(calc):
         raise CalculatorError('argument missing: constant id')
 
     try:
-        value = module.get(constant_id)
+        value = module.get(calc, constant_id)
     except ConstantError as err:
         import traceback
         # TODO: add error handling/output to Calculator

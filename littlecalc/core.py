@@ -67,7 +67,7 @@ class NumericConverter(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def convert_numeric(cls, word: str) -> object:
+    def to_numeric(cls, word: str) -> object:
         return None
 
 
@@ -75,7 +75,6 @@ class Module:
 
     def __init__(self, name, operations=None, aliases=None):
         self.name = name
-        self.calculator = None
 
         self.operations = operations or {}
         self.aliases = aliases or {}
@@ -125,18 +124,18 @@ class Module:
 
     def load_module(self, calculator):
         """Called when ``calculator`` loads this module."""
-        self.calculator = calculator
+        pass
 
-    def unload_module(self):
+    def unload_module(self, calculator):
         """Called when this module is being unloaded."""
-        self.calculator = None
+        pass
 
     def is_executable(self, operation):
         """Returns whether the passed operation is executable by
         this module."""
         return operation in self.operations or operation in self.aliases
 
-    def do_operation(self, operation):
+    def do_operation(self, calculator, operation):
         try:
             if operation in self.aliases:
                 alias = self.aliases[operation]
@@ -146,7 +145,7 @@ class Module:
         except KeyError:
             raise NoSuchOperation(operation)
 
-        op(self.calculator)
+        op(calculator)
 
 
 class Stack:
@@ -261,7 +260,7 @@ class Calculator:
     def do_operation(self, name):
         """Invokes the desired operation."""
         module = self.find_module_of_operation(name)
-        module.do_operation(name)
+        module.do_operation(self, name)
 
     def parse_input(self, input_):
         self.input_stream = ConsumingInputStream(input_.split())
@@ -281,20 +280,10 @@ class Calculator:
 def main():
     calc = Calculator()
 
-    module_name = 'builtin_module'
-    file_path = './builtin_module.py'
-
-    spec = importlib.util.spec_from_file_location(module_name, file_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = importlib.import_module('littlecalc.modules.decimal')
     calc.load_module(module.get_modules(calc)[0])
 
-    module_name = 'constants'
-    file_path = './constants.py'
-
-    spec = importlib.util.spec_from_file_location(module_name, file_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = importlib.import_module('littlecalc.modules.constants')
     calc.load_module(module.get_modules(calc)[0])
 
     while True:

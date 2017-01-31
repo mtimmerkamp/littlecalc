@@ -17,7 +17,7 @@
 import functools
 
 import decimal
-from littlecalc import Module, NumericConverter, CalculatorError
+from littlecalc.core import Module, NumericConverter, CalculatorError
 
 
 class DecimalConverter(NumericConverter):
@@ -25,7 +25,7 @@ class DecimalConverter(NumericConverter):
     @classmethod
     def is_numeric(cls, word):
         try:
-            value = decimal.Decimal(word)
+            _ = cls.to_numeric(word)
             return True
         except decimal.InvalidOperation:
             return False
@@ -35,23 +35,23 @@ class DecimalConverter(NumericConverter):
         return decimal.Decimal(word)
 
 
-class BuiltinModule(Module):
+class DecimalModule(Module):
 
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self):
+        super().__init__('decimal')
 
-    def load_module(self, calc):
-        super().load_module(calc)
+    def load_module(self, calculator):
+        super().load_module(calculator)
 
-        calc.register_numeric_type(DecimalConverter)
+        calculator.register_numeric_type(DecimalConverter)
 
-    def unload_module(self, calc):
-        super().unload_module(calc)
+    def unload_module(self, calculator):
+        super().unload_module(calculator)
 
-        calc.unregister_numeric_type(DecimalConverter)
+        calculator.unregister_numeric_type(DecimalConverter)
 
 
-module = BuiltinModule('builtin')
+module = DecimalModule()
 
 
 # special operations (e.g. stack)
@@ -174,7 +174,7 @@ def log10(x):
 
 @module.add_operation('pow', aliases=['**', '^'])
 @simple_arith_operation(2)
-def pow(x, y):
+def power(x, y):
     return y ** x
 
 
