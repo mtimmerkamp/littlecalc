@@ -160,7 +160,7 @@ add_default_constants(module)
 
 
 @module.add_operation('const')
-def const(module, calc):
+def const(calc):
     if calc.input_stream.has_next():
         constant_id = calc.input_stream.pop()
     else:

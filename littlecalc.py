@@ -146,7 +146,7 @@ class Module:
         except KeyError:
             raise NoSuchOperation(operation)
 
-        op(self, self.calculator)
+        op(self.calculator)
 
 
 class Stack:

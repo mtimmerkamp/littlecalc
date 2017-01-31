@@ -57,23 +57,23 @@ module = BuiltinModule('builtin')
 # special operations (e.g. stack)
 
 @module.add_operation('sto')
-def sto(module, calc):
+def sto(calc):
     if calc.input_stream.has_next():
-        dest = calc.input_stream.pop()
+        destination = calc.input_stream.pop()
     else:
         raise CalculatorError('argument missing')
     value = calc.stack.pop()
 
-    calc.storage[dest] = value
+    calc.storage[destination] = value
 
 
 @module.add_operation('rcl')
-def rcl(module, calc):
+def rcl(calc):
     if calc.input_stream.has_next():
-        dest = calc.input_stream.pop()
+        src = calc.input_stream.pop()
     else:
         raise CalculatorError('argument missing')
-    value = calc.storage[dest]
+    value = calc.storage[src]
 
     calc.stack.push(value)
 
@@ -91,7 +91,7 @@ def simple_arith_operation(arg_count):
     The following function::
 
         @simple_arith_operation(2)
-        def add(module, calc, x, y):
+        def add(x, y):
             return y + x
 
     is therefore equivalent to::
@@ -104,9 +104,9 @@ def simple_arith_operation(arg_count):
     """
     def decorator(f):
         @functools.wraps(f)
-        def wrapper(module, calc):
+        def wrapper(calc):
             values = calc.stack.pop(arg_count)
-            result = f(module, calc, *values)
+            result = f(*values)
             calc.stack.push(result)
         return wrapper
     return decorator
@@ -114,76 +114,76 @@ def simple_arith_operation(arg_count):
 
 @module.add_operation('add', aliases=['+'])
 @simple_arith_operation(2)
-def add(module, calc, x, y):
+def add(x, y):
     return y + x
 
 
 @module.add_operation('sub', aliases=['-'])
 @simple_arith_operation(2)
-def sub(module, calc, x, y):
+def sub(x, y):
     return y - x
 
 
 @module.add_operation('mul', aliases=['*'])
 @simple_arith_operation(2)
-def mul(module, calc, x, y):
+def mul(x, y):
     return y * x
 
 
 @module.add_operation('div', aliases=['/'])
 @simple_arith_operation(2)
-def div(module, calc, x, y):
+def div(x, y):
     return y / x
 
 
 @module.add_operation('inv')
 @simple_arith_operation(1)
-def inv(module, calc, x):
+def inv(x):
     return 1 / x
 
 
 @module.add_operation('sqrt')
 @simple_arith_operation(1)
-def sqrt(module, calc, x):
+def sqrt(x):
     return x.sqrt()
 
 
 @module.add_operation('sqr', aliases=['^2'])
 @simple_arith_operation(1)
-def sqr(module, calc, x):
+def sqr(x):
     return x * x
 
 
 @module.add_operation('exp')
 @simple_arith_operation(1)
-def exp(module, calc, x):
+def exp(x):
     return x.exp()
 
 
 @module.add_operation('ln')
 @simple_arith_operation(1)
-def ln(module, calc, x):
+def ln(x):
     return x.ln()
 
 
 @module.add_operation('log10', aliases=['lg'])
 @simple_arith_operation(1)
-def log10(module, calc, x):
+def log10(x):
     return x.log10()
 
 
 @module.add_operation('pow', aliases=['**', '^'])
 @simple_arith_operation(2)
-def pow(module, calc, x, y):
-    return x ** y
+def pow(x, y):
+    return y ** x
 
 
 @module.add_operation('log')
 @simple_arith_operation(2)
-def log(module, calc, x, y):
+def log(x, y):
     with decimal.localcontext() as ctx:
         ctx.prec += 5  # increase precision for intermediate steps
-        result = y.log10() / x.log10()
+        result = y.log10() / x.log10()  # log_x(y)
     return +result  # round back to previous precision
 
 
