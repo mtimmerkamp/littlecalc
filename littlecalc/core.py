@@ -170,6 +170,9 @@ class Stack:
         for value in values:
             self.stack.append(value)
 
+    def clear(self):
+        self.stack.clear()
+
     def __str__(self):
         return str(self.stack)
 

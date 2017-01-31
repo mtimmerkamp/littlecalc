@@ -56,8 +56,8 @@ module = DecimalModule()
 
 # special operations (e.g. stack)
 
-@module.add_operation('sto')
-def sto(calc):
+@module.add_operation('store', aliases=['sto'])
+def store(calc):
     if calc.input_stream.has_next():
         destination = calc.input_stream.pop()
     else:
@@ -67,8 +67,8 @@ def sto(calc):
     calc.storage[destination] = value
 
 
-@module.add_operation('rcl')
-def rcl(calc):
+@module.add_operation('recall', aliases=['rcl'])
+def recall(calc):
     if calc.input_stream.has_next():
         src = calc.input_stream.pop()
     else:
@@ -76,6 +76,19 @@ def rcl(calc):
     value = calc.storage[src]
 
     calc.stack.push(value)
+
+
+@module.add_operation('clear', aliases=['clr'])
+def clear_stack(calc):
+    """Clears stack."""
+    calc.stack.clear()
+
+
+@module.add_operation('clearall')
+def clear_all(calc):
+    """Clears stack and variable storage."""
+    calc.stack.clear()
+    calc.storage.clear()
 
 
 # basic mathematical operations
