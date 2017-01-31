@@ -25,9 +25,16 @@ https://github.com/pypa/sampleproject
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
+
 from os import path
+import re
+
 
 here = path.abspath(path.dirname(__file__))
+
+with open(path.join(here, 'littlecalc/__init__.py'), 'r') as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fd.read(), re.MULTILINE).group(1)
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
@@ -89,10 +96,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     # install_requires=['pyYAML', 'sqlalchemy'],
 
-    use_scm_version={
-        'write_to': 'littlecalc/version.py'
-    },
-    setup_requires=['setuptools_scm'],
+    version=version,
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -114,7 +118,7 @@ setup(
     # need to place data files outside of your packages. See:
     # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    data_files=[],
+    # data_files=[],
 
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
