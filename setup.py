@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# little-calc
+# littlecalc
 # Copyright (C) 2017  Maximilian Timmerkamp
 #
 # This program is free software: you can redistribute it and/or modify
