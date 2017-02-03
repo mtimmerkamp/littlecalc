@@ -31,9 +31,8 @@ where "sto" pulls one word from the stream to use it as a parameter.
 """
 
 
-from collections import deque, ChainMap
+from collections import deque
 import abc
-import decimal
 import importlib
 import importlib.util
 
@@ -294,6 +293,7 @@ def main():
 
         calc.parse_input(user_input)
         print(calc.stack)
+
 
 if __name__ == '__main__':
     main()

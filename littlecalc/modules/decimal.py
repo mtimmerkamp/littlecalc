@@ -25,7 +25,7 @@ class DecimalConverter(NumericConverter):
     @classmethod
     def is_numeric(cls, word):
         try:
-            _ = cls.to_numeric(word)
+            cls.to_numeric(word)
             return True
         except decimal.InvalidOperation:
             return False

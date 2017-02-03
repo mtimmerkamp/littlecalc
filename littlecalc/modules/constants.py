@@ -130,7 +130,7 @@ def calc_pi(calc):
         const_0p5 = to_num('0.5')
 
         # Gauss-Legendre algorithm
-        an, bn, tn, pn = to_num(1), 1/to_num(2)**const_0p5, 1/to_num(4), 1
+        an, bn, tn, pn = to_num(1), 1 / to_num(2)**const_0p5, 1 / to_num(4), 1
         v, lastv = 0, 1
         while v != lastv:
             a, b, t, p = an, bn, tn, pn
