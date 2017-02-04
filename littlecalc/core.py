@@ -292,7 +292,12 @@ def main():
         user_input = input('>>> ')
 
         calc.parse_input(user_input)
-        print(calc.stack)
+
+        max_depth = min(len(calc.stack.stack), 4)
+        if max_depth > 0:
+            for i, level_name in enumerate('TZYX'[-max_depth:]):
+                value = calc.stack.stack[-max_depth + i]
+                print('{}: {}'.format(level_name, value))
 
 
 if __name__ == '__main__':
