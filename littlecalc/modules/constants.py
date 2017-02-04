@@ -71,7 +71,7 @@ class ConstantsModule(Module):
             return calculator.to_numeric(value)
 
         try:
-            return func(calculator)
+            return func(calculator, self)
         except Exception as err:
             raise ConstantCalculationError(
                 'Cannot calculate constant: "{}"'.format(constant_id)
@@ -88,7 +88,8 @@ class ConstantsModule(Module):
         ``description`` are required as well as one of ``value``
         and ``func``. ``value`` is a string to be converted
         by ``Calculator.to_numeric``, while ``func`` is a function
-        that takes a calculator object as parameter.
+        that takes a calculator object and an instance of this
+        class as parameters.
 
         If ``value`` is set, a fixed constant is created.
         If ``func`` is set, the function will be called each time the
@@ -107,7 +108,7 @@ class ConstantsModule(Module):
             self.constant_calculators[constant_id] = func
 
 
-def calc_e(calc):
+def calc_e(calc, module):
     to_num = calc.to_numeric
     with localcontext() as ctx:
         ctx.prec += 5
@@ -122,7 +123,7 @@ def calc_e(calc):
     return +s  # rounding back to original precision
 
 
-def calc_pi(calc):
+def calc_pi(calc, module):
     to_num = calc.to_numeric
     with localcontext() as ctx:
         ctx.prec += 5  # increase precision for intermediate steps
@@ -146,10 +147,52 @@ def calc_pi(calc):
     return +v  # round back to previous precision
 
 
+def calc_phys_mu0(calc, module):
+    pi = module.get(calc, 'pi')
+    return 4 * pi * calc.to_numeric('1e-7')
+
+
+def calc_phsy_eps0(calc, module):
+    mu0 = module.get('mu0')
+    c0 = module.get('c0')
+
+    return 1 / (mu0 * c0)
+
+
+def calc_phys_Z0(calc, module):
+    mu0 = module.get('mu0')
+    c0 = module.get('c0')
+
+    return c0 * mu0
+
+
 def add_default_constants(module):
     module.add('e', 'Euler\'s number', func=calc_e)
     module.add('pi', 'ratio of a circle\'s circumference to its diameter',
                func=calc_pi)
+
+    # Fundamental Physical Constants from http://physics.nist.gov/constants
+    # universal constants
+    module.add('c0', 'speed of light in vacuum', '299792458')
+    module.add('mu0', 'magnetic constant', func=calc_phys_mu0)
+    module.add('eps0', 'electric constant', func=calc_phsy_eps0)
+    module.add('Z0', 'characteristic impedance of vacuum', func=calc_phys_Z0)
+    module.add('G', 'Newtonian constant of gravitation', '6.67408e-11')
+    module.add('h', 'Planck constant', '6.626070040e-34')
+    module.add('hbar', 'Planck constant over 2 pi', '1.054571800e-34')
+    module.add('m_P', 'Planck mass', '2.176470e-8')
+    module.add('T_P', 'Planck temperature', '1.416808e32')
+    module.add('l_P', 'Planck length', '1.616229e-35')
+    module.add('t_P', 'Planck time', '5.39116e-44')
+
+    # electromagnetic constants
+    module.add('e0', 'elementary charge', '1.6021766208e-19')
+    module.add('Phi0', 'magnetic flux quantum', '2.067833831e-15')
+    module.add('G0', 'conductance quantum', '7.7480917310e-5')
+    module.add('K_J', 'Josephson constant', '483597.8525e9')
+    module.add('R_K', 'von Klitzing constant', '25812.8074555')
+    module.add('mu_B', 'Bohr magneton', '927.4009994e-26')
+    module.add('mu_N', 'nuclear magneton', '5.050783699e-27')
 
 
 module = ConstantsModule()
