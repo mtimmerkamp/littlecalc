@@ -171,28 +171,91 @@ def add_default_constants(module):
     module.add('pi', 'ratio of a circle\'s circumference to its diameter',
                func=calc_pi)
 
-    # Fundamental Physical Constants from http://physics.nist.gov/constants
+    # 2014 CODATA recommended values
+    # Fundamental Physical Constants (from http://physics.nist.gov/constants)
     # universal constants
-    module.add('c0', 'speed of light in vacuum', '299792458')
-    module.add('mu0', 'magnetic constant', func=calc_phys_mu0)
-    module.add('eps0', 'electric constant', func=calc_phsy_eps0)
-    module.add('Z0', 'characteristic impedance of vacuum', func=calc_phys_Z0)
-    module.add('G', 'Newtonian constant of gravitation', '6.67408e-11')
-    module.add('h', 'Planck constant', '6.626070040e-34')
-    module.add('hbar', 'Planck constant over 2 pi', '1.054571800e-34')
-    module.add('m_P', 'Planck mass', '2.176470e-8')
-    module.add('T_P', 'Planck temperature', '1.416808e32')
-    module.add('l_P', 'Planck length', '1.616229e-35')
-    module.add('t_P', 'Planck time', '5.39116e-44')
+    module.add('c0', 'speed of light in vacuum (m s^-1)', '299792458')
+    module.add('mu0', 'magnetic constant (N A^-2)', func=calc_phys_mu0)
+    module.add('eps0', 'electric constant (F m^-1)', func=calc_phsy_eps0)
+    module.add(
+        'Z0', 'characteristic impedance of vacuum (Ohm)', func=calc_phys_Z0)
+    module.add(
+        'G', 'Newtonian constant of gravitation (m^3 kg^-1 s^-2)',
+        '6.67408e-11')
+    module.add('h', 'Planck constant (J s)', '6.626070040e-34')
+    module.add('hbar', 'Planck constant over 2 pi (J s)', '1.054571800e-34')
+    module.add('m_P', 'Planck mass (kg)', '2.176470e-8')
+    module.add('T_P', 'Planck temperature (K)', '1.416808e32')
+    module.add('l_P', 'Planck length (m)', '1.616229e-35')
+    module.add('t_P', 'Planck time (s)', '5.39116e-44')
 
     # electromagnetic constants
-    module.add('e0', 'elementary charge', '1.6021766208e-19')
-    module.add('Phi0', 'magnetic flux quantum', '2.067833831e-15')
-    module.add('G0', 'conductance quantum', '7.7480917310e-5')
-    module.add('K_J', 'Josephson constant', '483597.8525e9')
-    module.add('R_K', 'von Klitzing constant', '25812.8074555')
-    module.add('mu_B', 'Bohr magneton', '927.4009994e-26')
-    module.add('mu_N', 'nuclear magneton', '5.050783699e-27')
+    module.add('e0', 'elementary charge (C)', '1.6021766208e-19')
+    module.add('Phi0', 'magnetic flux quantum (Wb)', '2.067833831e-15')
+    module.add('G0', 'conductance quantum (S)', '7.7480917310e-5')
+    module.add('K_J', 'Josephson constant (Hz V^-1)', '483597.8525e9')
+    module.add('R_K', 'von Klitzing constant (Ohm)', '25812.8074555')
+    module.add('mu_B', 'Bohr magneton (J T^-1)', '927.4009994e-26')
+    module.add('mu_N', 'nuclear magneton (J T^-1)', '5.050783699e-27')
+
+    # physio-chemical constants
+    module.add('N_A', 'Avogadro constant (mol^-1)', '6.022140857e23')
+    module.add('m_u', 'atomic mass constant (kg)', '1.660539040e-27')
+    module.add('F', 'Faraday constant (C mol^-1)', '96485.33289')
+    module.add('R', 'molar gas constant (J mol^-1 K^-1)', '8.3144598')
+    module.add('kB', 'Boltzmann constant (J K^-1)', '1.38064852e-23')
+    module.add(
+        'V_m', ('molar volume of ideal gas (m^3 mol^-1) ' +
+                '(at 273.15 K, 101.325 kPa)'),
+        '22.413962e-3')
+    module.add(
+        'sigma', 'Stefan-Boltzmann constant (W m^-2 K^-4)', '5.670367e-8')
+    module.add('c1', 'first radiation constant (W m^2)', '3.741771790e-16')
+    module.add('c2', 'second radiation constant (m K)', '1.43877736e-2')
+
+    # atomic and nuclear constants
+    module.add('alpha', 'fine-structure constant', '7.2973525664e-3')
+    module.add('Ry', 'Rydberg constant (m^-1)', '10973731.568508')
+    module.add('a0', 'Bohr radius (m)', '0.52917721067e-10')
+    module.add('E_h', 'Hartree energy (J)', '4.359744650e-18')
+
+    module.add('m_e', 'electron mass (kg)', '9.10938356e-31')
+    module.add('lambda_C', 'Compton wavelength (m)', '2.4263102367e-12')
+    module.add('r_e', 'classical electron radius (m)', '2.8179403227e-15')
+    module.add('mu_e', 'electron magnetic moment (J T^-1)', '-928.4764620e-26')
+    module.add('g_e', 'electron g factor', '-2.00231930436182')
+
+    module.add('m_mu', 'muon mass (kg)', '1.883531594e-28')
+    module.add('mu_mu', 'muon magnetic moment (J T^-1)', '-4.49044826e-26')
+    module.add('g_mu', 'muon g factor', '-2.0023318418')
+
+    module.add('m_tau', 'tau mass (kg)', '3.16747e-27')
+
+    module.add('m_p', 'proton mass (kg)', '1.672621898e-27')
+    module.add('mu_p', 'proton magnetic moment (J T^-1)', '1.4106067873e-26 ')
+    module.add('g_p', 'proton g factor', '5.585694702')
+
+    module.add('m_n', 'neutron mass (kg)', '1.674927471e-27')
+    module.add('mu_n', 'neutron magnetic moment (J T^-1)', '-0.96623650e-26')
+    module.add('g_n', 'neutron g factor', '-3.82608545')
+
+    module.add('m_d', 'deuteron mass (kg)', '3.343583719e-27')
+    module.add('mu_d', 'deuteron magnetic moment (J T^-1)', '0.4330735040e-26')
+    module.add('g_d', 'deuteron g factor', '0.8574382311')
+
+    module.add('m_t', 'triton mass (kg)', '5.007356665e-27')
+    module.add('mu_t', 'triton magnetic moment (J T^-1)', '1.504609503e-26')
+    module.add('g_t', 'triton g factor', '5.957924920')
+
+    module.add('m_h', 'helion mass (kg)', '5.006412700e-27')
+    module.add('mu_h', 'helion magnetic moment (J T^-1)', '-1.074617522e-26')
+    module.add('g_h', 'helion g factor', '-4.255250616')
+
+    module.add('m_alpha', 'alpha particle mass (kg)', '6.644657230e-27')
+
+    # adopted values
+    module.add('g', 'standard acceleration of gravity (m s^-2)', '9.80665')
+    module.add('atm', 'standard atmosphere (Pa)', '101325')
 
 
 module = ConstantsModule()
