@@ -109,8 +109,7 @@ def simple_arith_operation(arg_count):
 
     is therefore equivalent to::
 
-        @simple_arith_operation(2)
-        def add(module, calc):
+        def add(calc):
             x, y = calc.stack.pop(2)
             result = y + x
             calc.stack.push(result)
