@@ -200,5 +200,243 @@ def log(x, y):
     return +result  # round back to previous precision
 
 
+def _calc_pi(cache={}):
+    current_context = decimal.getcontext()
+    if current_context.prec in cache:
+        return cache[current_context.prec]
+
+    D = decimal.Decimal
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # increase precision for intermediate steps
+
+        const_0p5 = D('0.5')
+
+        # Gauss-Legendre algorithm
+        an, bn, tn, pn = D(1), 1 / D(2)**const_0p5, 1 / D(4), 1
+        v, lastv = 0, 1
+        while v != lastv:
+            a, b, t, p = an, bn, tn, pn
+
+            an = (a + b) / 2
+            bn = (a * b)**const_0p5
+            tn = t - p * (a - an)**2
+            pn = 2 * p
+
+            lastv = v
+            v = (an + bn)**2 / (4 * tn)
+    v = +v  # round back to previous precision
+
+    cache[current_context.prec] = v
+    return v
+
+
+def _sin(x):
+    """
+    Calculate ``sin(x)`` using the Taylor series:
+        \sin(x) =
+            \sum_{n=0}^{\infinity} (-1)^n \frac{ x^{2n + 1} }{ (2n + 1)! }
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # additional precision for intermediate steps
+
+        pi = _calc_pi()
+        x = x % (2 * pi)  # cos works best for small x
+
+        s, lasts = x, 0
+        i, num, fac, sign = 1, x, 1, 1
+
+        while s != lasts:
+            lasts = s
+
+            i += 2
+            fac *= i * (i - 1)
+            num *= x * x
+            sign *= -1
+
+            s += num / fac * sign
+    return +s  # round back to previous precision
+
+
+@module.add_operation('sin')
+@simple_arith_operation(1)
+def sin(x):
+    return _sin(x)
+
+
+def _cos(x):
+    """
+    Calculate ``cos(x)`` using the Taylor series:
+        \cos(x) = \sum_{n=0}^{\infinity} (-1)^n \frac{ x^{2n} }{ (2n)! }
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # additional precision for intermediate steps
+
+        pi = _calc_pi()
+        x = x % (2 * pi)  # cos works best for small x
+
+        s, lasts = 1, 0
+        i, num, fac, sign = 0, 1, 1, 1
+
+        while s != lasts:
+            lasts = s
+
+            i += 2
+            fac *= i * (i - 1)
+            num *= x * x
+            sign *= -1
+
+            s += num / fac * sign
+    return +s  # round back to previous precision
+
+
+@module.add_operation('cos')
+@simple_arith_operation(1)
+def cos(x):
+    return _cos(x)
+
+
+def _tan(x):
+    """
+    Calculate ``tan(x)`` using:
+        \tan(x) = \frac{ \sin(x) }{ \cos(x) }
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec *= 2  # additional precision for intermediate steps
+        result = _sin(x) / _cos(x)
+    return +result
+
+
+@module.add_operation('tan')
+@simple_arith_operation(1)
+def tan(x):
+    return _tan(x)
+
+
+def _cot(x):
+    """
+    Calculate ``cot(x)`` using:
+        \cot(x) = \frac{ \cos(x) }{ \sin(x) }
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec *= 2  # additional precision for intermediate steps
+        result = _cos(x) / _sin(x)
+    return +result
+
+
+@module.add_operation('cot')
+@simple_arith_operation(1)
+def cot(x):
+    return _cot(x)
+
+
+def _arctan(x):
+    """
+    Calculate ``arctan(x)`` using:
+        \arctan(x) = \sum_{k=0}^{\infinity} (-1)^k \frac{ x^{2k+1} }{ 2k + 1 }
+
+    This series converges for |x| < 1, to support |x| > 1 the following is
+    used:
+        \arctan(x) = 2 \arctan \frac{ x }{ x + \sqrt{ 1 + x^2 } }
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # additional precision for intermediate steps
+
+        if abs(x) >= 1:
+            _0p5 = x / x / 2
+            x = x / (1 + (1 + x**2)**_0p5)
+            s = 2 * _arctan(x)
+        else:
+            s = x
+            lasts = 0
+            num = x
+            sign = 1
+            k = 0
+
+            while s != lasts:
+                lasts = s
+                k += 1
+
+                sign *= -1
+                num *= x * x
+
+                s += sign * num / (2 * k + 1)
+    return +s  # round back to previous precision
+
+
+@module.add_operation('arctan')
+@simple_arith_operation(1)
+def arctan(x):
+    return _arctan(x)
+
+
+def _arccot(x):
+    """
+    Calculate ``arccot(x)`` using:
+        \arccot(x) = \frac{ \pi }{ 2 } - \arctan(x)
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # additional precision for intermediate steps
+
+        pi = _calc_pi()
+        result = pi / 2 - _arctan(x)
+    return + result  # round back to previous precision
+
+
+@module.add_operation('arccot')
+@simple_arith_operation(1)
+def arccot(x):
+    return _arccot(x)
+
+
+def _arcsin(x):
+    """
+    Calculate ``arcsin(x)`` using:
+        \arcsin(x) = \sgn(x) \arctan \sqrt{ \frac{ x^2 }{ 1 - x^2 } }
+    for |x| < 1 and
+
+        \arcsin(|x| = 1) = \sgn(x) \frac{ \pi }{ 2 }
+    for |x| = 1.
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # additional precision for intermediate steps
+
+        sgn = -1 if x < 0 else 1
+        if x == 1:
+            pi = _calc_pi()
+
+            result = sgn * pi / 2
+        else:
+            _0p5 = x / x / 2
+            arg = (x**2 / (1 - x**2))**_0p5
+
+            result = sgn * _arctan(arg)
+    return +result  # round back to previous precision
+
+
+@module.add_operation('arcsin')
+@simple_arith_operation(1)
+def arcsin(x):
+    return _arcsin(x)
+
+
+def _arccos(x):
+    """
+    Calculate ``arccos(x)`` using:
+        \arccos(x) = \frac{ \pi }{ 2 } - \arcsin(x)
+    """
+    with decimal.localcontext() as ctx:
+        ctx.prec += 5  # additional precision for intermediate steps
+
+        pi = _calc_pi()
+        result = pi / 2 - _arcsin(x)
+    return +result  # round back to previous precision
+
+
+@module.add_operation('arccos')
+@simple_arith_operation(1)
+def arccos(x):
+    return _arccos(x)
+
+
 def get_modules(calc):
     return [module]
