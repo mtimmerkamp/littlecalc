@@ -152,16 +152,28 @@ class Stack:
     def __init__(self, stack=None):
         self.stack = deque(stack or [])
 
+        self.lastx = None
+
     def pop(self, count=None):
         """Return the last entry pushed onto the stack. If ``count``
         is an int, a list of the last ``count`` entries is returned,
         where the first item is the topmost entry on the stack."""
         if count is None:
-            return self.stack.pop()
+            self.lastx = self.stack.pop()
+            return self.lastx
         elif isinstance(count, int):
+            self.lastx = self.stack[-1]
             return [self.stack.pop() for _ in range(count)]
         else:
             raise ValueError('int or None required')
+
+    def peek(self):
+        """
+        Return the topmost value from stack without removing it.
+
+        Raises an IndexError if there are no items on stack.
+        """
+        return self.stack[-1]
 
     def push(self, *values):
         """Push ``values`` to the stack. The last item of ``values``
@@ -171,6 +183,12 @@ class Stack:
 
     def clear(self):
         self.stack.clear()
+
+    def rotate(self, n):
+        self.stack.rotate(n)
+
+    def __len__(self):
+        return len(self.stack)
 
     def __str__(self):
         return str(self.stack)

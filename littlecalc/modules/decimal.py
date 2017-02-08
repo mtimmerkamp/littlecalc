@@ -91,6 +91,48 @@ def clear_all(calc):
     calc.storage.clear()
 
 
+@module.add_operation('xchy')
+def xchy(calc):
+    """Exchange X and Y register."""
+    if len(calc.stack) >= 2:
+        x, y = calc.stack.pop(2)
+        calc.stack.push(x, y)
+
+
+@module.add_operation('rolup', aliases=['rlu'])
+def rolup(calc):
+    calc.stack.rotate(-1)
+
+
+@module.add_operation('roldown', aliases=['rld'])
+def roldown(calc):
+    calc.stack.rotate(1)
+
+
+@module.add_operation('push')
+def push(calc):
+    try:
+        value = calc.stack.peek()
+    except IndexError:
+        pass
+    else:
+        calc.stack.push(value)
+
+
+@module.add_operation('pop')
+def pop(calc):
+    try:
+        calc.stack.pop()
+    except IndexError:
+        pass
+
+
+@module.add_operation('lastx')
+def lastx(calc):
+    if calc.stack.lastx is not None:
+        calc.stack.push(calc.stack.lastx)
+
+
 # basic mathematical operations
 
 def simple_arith_operation(arg_count):
@@ -188,6 +230,13 @@ def log10(x):
 @simple_arith_operation(2)
 def power(x, y):
     return y ** x
+
+
+@module.add_operation('root')
+@simple_arith_operation(2)
+def root(x, y):
+    """Xth root of Y."""
+    return y ** (1 / x)
 
 
 @module.add_operation('log')
