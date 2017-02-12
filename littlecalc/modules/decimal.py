@@ -16,6 +16,7 @@
 
 import functools
 
+import math
 import decimal
 from littlecalc.core import Module, NumericConverter, CalculatorError
 
@@ -133,6 +134,26 @@ def lastx(calc):
         calc.stack.push(calc.stack.lastx)
 
 
+@module.add_operation('prec')
+def prec(calc):
+    if calc.input_stream.has_next():
+        try:
+            new_prec = int(calc.input_stream.peek())
+            calc.input_stream.pop()
+        except ValueError:
+            # TODO: raise error
+            return
+
+    context = decimal.getcontext()
+    context.prec = new_prec
+
+
+@module.add_operation('prec?')
+def prec_show(calc):
+    # TODO: Do not just print to stdout, but use some method of Calculator
+    print('current precision:', decimal.getcontext().prec)
+
+
 # basic mathematical operations
 
 def simple_arith_operation(arg_count):
@@ -162,6 +183,52 @@ def simple_arith_operation(arg_count):
             values = calc.stack.pop(arg_count)
             result = f(*values)
             calc.stack.push(result)
+        return wrapper
+    return decorator
+
+
+def compute_to_precision(init_factor, step_factor):
+    """
+    Returns a decorator which helps to compute a function's result to
+    current precision. It increases the calculation precision by a factor
+    ``step_factor`` until two consecutive calculations return the same result
+    (that is rounded to the externally defined current precision).
+
+    Before the first calculation starts, the calculation precision is
+    multiplied by ``init_factor`` and rounded up, all following increases of
+    the precision use ``init_factor``. ``init_factor`` must be greater
+    than 0 and ``init_factor`` must be greater than 1.
+    """
+    if init_factor <= 0:
+        raise ValueError('init_factor must be greater than 0')
+    if step_factor < 1:
+        raise ValueError('step_factor must be greater than 1')
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # this ensures that the loop runs at least two times
+            result = None
+            last_result = None
+
+            current_prec = decimal.getcontext().prec
+            # additional precision for intermediate steps
+            # and ensure that ensure that the initial precision is at least 1
+            next_prec = math.ceil(max(current_prec, 1) * init_factor)
+
+            while last_result is None or result != last_result:
+                last_result = result
+                with decimal.localcontext() as ctx:
+                    ctx.prec = next_prec
+
+                    # calculate the actual result
+                    result = func(*args, **kwargs)
+
+                    next_prec = math.ceil(next_prec * step_factor)
+
+                result = +result  # round back to previous precision
+            return result
+
         return wrapper
     return decorator
 
@@ -343,15 +410,13 @@ def cos(x):
     return _cos(x)
 
 
+@compute_to_precision(1, 1.1)
 def _tan(x):
     """
     Calculate ``tan(x)`` using:
         \tan(x) = \frac{ \sin(x) }{ \cos(x) }
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec *= 2  # additional precision for intermediate steps
-        result = _sin(x) / _cos(x)
-    return +result
+    return _sin(x) / _cos(x)
 
 
 @module.add_operation('tan')
@@ -360,15 +425,13 @@ def tan(x):
     return _tan(x)
 
 
+@compute_to_precision(1, 1.1)
 def _cot(x):
     """
     Calculate ``cot(x)`` using:
         \cot(x) = \frac{ \cos(x) }{ \sin(x) }
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec *= 2  # additional precision for intermediate steps
-        result = _cos(x) / _sin(x)
-    return +result
+    return _cos(x) / _sin(x)
 
 
 @module.add_operation('cot')
@@ -382,14 +445,14 @@ def _arctan(x):
     Calculate ``arctan(x)`` using:
         \arctan(x) = \sum_{k=0}^{\infinity} (-1)^k \frac{ x^{2k+1} }{ 2k + 1 }
 
-    This series converges for |x| < 1, to support |x| > 1 the following is
+    This series converges for |x| < 1, to support |x| >= 1 the following is
     used:
         \arctan(x) = 2 \arctan \frac{ x }{ x + \sqrt{ 1 + x^2 } }
     """
     with decimal.localcontext() as ctx:
         ctx.prec += 5  # additional precision for intermediate steps
 
-        if abs(x) >= 1:
+        if abs(x) >= 0.9:  # improve convergence for |x| ~ 1
             _0p5 = x / x / 2
             x = x / (1 + (1 + x**2)**_0p5)
             s = 2 * _arctan(x)
