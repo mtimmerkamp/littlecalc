@@ -19,15 +19,18 @@ Currently there are two builtin modules:
 Both of these are currently loaded by default when starting the program.
 
 
-Requirements
-------------
+Quickstart
+----------
 
-Python >= 3.3
+Python >= 3.3 is required.
+
+To run from source:
+
+    python -m littlecalc.core
 
 
-Installation
-------------
-
-Just run:
+To install, just run:
 
     python setup.py install
+
+Then you can start via ``littlecalc``.
