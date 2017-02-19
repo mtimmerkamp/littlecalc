@@ -14,8 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from littlecalc.core import Module, CalculatorError
 from decimal import localcontext
+import traceback
+from littlecalc.core import Module, CalculatorError, operation
 
 
 class ConstantError(CalculatorError):
@@ -107,6 +108,26 @@ class ConstantsModule(Module):
         else:
             self.constant_calculators[constant_id] = func
 
+    @operation('const', type='plain')
+    def const(self, calc, constant_id):
+        return self.get(calc, constant_id)
+    const.add('remote', from_type='plain')
+
+    @const.add('calc')
+    def const(self, calc):
+        if calc.input_stream.has_next():
+            constant_id = calc.input_stream.pop()
+        else:
+            raise CalculatorError('argument missing: constant id')
+
+        try:
+            value = self.const(self, calc, constant_id)
+        except ConstantError as err:
+            # TODO: add error handling/output to Calculator
+            traceback.print_exc()
+        else:
+            calc.stack.push(value)
+
 
 def calc_e(calc, module):
     to_num = calc.to_numeric
@@ -152,16 +173,16 @@ def calc_phys_mu0(calc, module):
     return 4 * pi * calc.to_numeric('1e-7')
 
 
-def calc_phsy_eps0(calc, module):
-    mu0 = module.get('mu0')
-    c0 = module.get('c0')
+def calc_phys_eps0(calc, module):
+    mu0 = module.get(calc, 'mu0')
+    c0 = module.get(calc, 'c0')
 
     return 1 / (mu0 * c0)
 
 
 def calc_phys_Z0(calc, module):
-    mu0 = module.get('mu0')
-    c0 = module.get('c0')
+    mu0 = module.get(calc, 'mu0')
+    c0 = module.get(calc, 'c0')
 
     return c0 * mu0
 
@@ -176,7 +197,7 @@ def add_default_constants(module):
     # universal constants
     module.add('c0', 'speed of light in vacuum (m s^-1)', '299792458')
     module.add('mu0', 'magnetic constant (N A^-2)', func=calc_phys_mu0)
-    module.add('eps0', 'electric constant (F m^-1)', func=calc_phsy_eps0)
+    module.add('eps0', 'electric constant (F m^-1)', func=calc_phys_eps0)
     module.add(
         'Z0', 'characteristic impedance of vacuum (Ohm)', func=calc_phys_Z0)
     module.add(
@@ -203,7 +224,7 @@ def add_default_constants(module):
     module.add('m_u', 'atomic mass constant (kg)', '1.660539040e-27')
     module.add('F', 'Faraday constant (C mol^-1)', '96485.33289')
     module.add('R', 'molar gas constant (J mol^-1 K^-1)', '8.3144598')
-    module.add('kB', 'Boltzmann constant (J K^-1)', '1.38064852e-23')
+    module.add('k_B', 'Boltzmann constant (J K^-1)', '1.38064852e-23')
     module.add(
         'V_m', ('molar volume of ideal gas (m^3 mol^-1) ' +
                 '(at 273.15 K, 101.325 kPa)'),
@@ -258,26 +279,7 @@ def add_default_constants(module):
     module.add('atm', 'standard atmosphere (Pa)', '101325')
 
 
-module = ConstantsModule()
-add_default_constants(module)
-
-
-@module.add_operation('const')
-def const(calc):
-    if calc.input_stream.has_next():
-        constant_id = calc.input_stream.pop()
-    else:
-        raise CalculatorError('argument missing: constant id')
-
-    try:
-        value = module.get(calc, constant_id)
-    except ConstantError as err:
-        import traceback
-        # TODO: add error handling/output to Calculator
-        print(''.join(traceback.format_exception(type(err), err, None)))
-    else:
-        calc.stack.push(value)
-
-
 def get_modules(calc):
+    module = ConstantsModule()
+    add_default_constants(module)
     return [module]
