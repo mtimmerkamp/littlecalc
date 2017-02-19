@@ -19,7 +19,6 @@ Both of these are currently loaded by default when starting the program.
 
 ## Planned features
 
- * Separate module for `sto`, `rcl`, `clear` and similar _non mathematical_ functions.
  * History and simple editing at the prompt.
  * Support for evaluating formulas (probably only if notated in rpn).
  * User and developer documentation...
@@ -28,12 +27,10 @@ Both of these are currently loaded by default when starting the program.
   * Hyperbolic functions (sinh, cosh, tanh) and its inverse counterparts.
   * Validate implemented mathematical algorithms to be correct.
 
- * Reworked implementation of operations to support easier invokation of operations by other modules.
-
 
 ## Quickstart
 
-Python >= 3.3 is required.
+Python >= 3.5 is required.
 
 To run from source:
 
