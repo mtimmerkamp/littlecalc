@@ -18,7 +18,7 @@ import functools
 
 import math
 import decimal
-from littlecalc.core import Module, NumericConverter, CalculatorError
+from littlecalc.core import Module, NumericConverter, operation
 
 
 class DecimalConverter(NumericConverter):
@@ -41,71 +41,128 @@ class DecimalModule(Module):
     def __init__(self):
         super().__init__('decimal')
 
-    def load_module(self, calculator):
-        super().load_module(calculator)
+    def load_module(self, calc):
+        super().load_module(calc)
 
-        calculator.register_numeric_type(DecimalConverter)
+        self.calc.register_numeric_type(DecimalConverter)
 
-    def unload_module(self, calculator):
-        super().unload_module(calculator)
+    def unload_module(self):
+        self.calc.deregister_numeric_type(DecimalConverter)
 
-        calculator.unregister_numeric_type(DecimalConverter)
+        super().unload_module()
 
+    @operation('prec', type='calc')
+    def prec(self, calc):
+        if calc.input_stream.has_next():
+            try:
+                new_prec = int(calc.input_stream.peek())
+                calc.input_stream.pop()
+            except ValueError:
+                # TODO: raise error
+                return
 
-module = DecimalModule()
+        context = decimal.getcontext()
+        context.prec = new_prec
 
+    @operation('prec?', type='calc')
+    def prec_show(self, calc):
+        # TODO: Do not just print to stdout, but use some method of Calculator
+        print('current precision:', decimal.getcontext().prec)
 
-@module.add_operation('prec')
-def prec(calc):
-    if calc.input_stream.has_next():
-        try:
-            new_prec = int(calc.input_stream.peek())
-            calc.input_stream.pop()
-        except ValueError:
-            # TODO: raise error
-            return
+    # basic mathematical operations
 
-    context = decimal.getcontext()
-    context.prec = new_prec
+    @operation('add', aliases=['+'], type='stack', arg_count=2, add_plain=True)
+    def add(x, y):
+        return y + x
 
+    @operation('sub', aliases=['-'], type='stack', arg_count=2, add_plain=True)
+    def sub(x, y):
+        return y - x
 
-@module.add_operation('prec?')
-def prec_show(calc):
-    # TODO: Do not just print to stdout, but use some method of Calculator
-    print('current precision:', decimal.getcontext().prec)
+    @operation('mul', aliases=['*'], type='stack', arg_count=2, add_plain=True)
+    def mul(x, y):
+        return y * x
 
+    @operation('div', aliases=['/'], type='stack', arg_count=2, add_plain=True)
+    def div(x, y):
+        return y / x
 
-# basic mathematical operations
+    @operation('inv', type='stack', arg_count=1, add_plain=True)
+    def inv(x):
+        return 1 / x
 
-def simple_arith_operation(arg_count):
-    """Create a decorator for a simple arithmetic function with one
-    result, consuming ``arg_count`` topmost values from stack.
+    @operation('sqrt', type='stack', arg_count=1, add_plain=True)
+    def sqrt(x):
+        return x.sqrt()
 
-    Pop ``arg_count`` values from stack (see Stack.pop) and call
-    the function with these values as parameters. The return value
-    is pushed onto the stack.
+    @operation('sqr', aliases=['^2'], type='stack', arg_count=1,
+               add_plain=True)
+    def sqr(x):
+        return x * x
 
-    The following function::
+    @operation('exp', type='stack', arg_count=1, add_plain=True)
+    def exp(x):
+        return x.exp()
 
-        @simple_arith_operation(2)
-        def add(x, y):
-            return y + x
+    @operation('ln', type='stack', arg_count=1, add_plain=True)
+    def ln(x):
+        return x.ln()
 
-    is therefore equivalent to::
+    @operation('log10', aliases=['lg'], type='stack', arg_count=1,
+               add_plain=True)
+    def log10(x):
+        return x.log10()
 
-        def add(calc):
-            x, y = calc.stack.pop(2)
-            result = y + x
-            calc.stack.push(result)
-    """
-    def decorator(f):
-        @functools.wraps(f)
-        def wrapper(calc):
-            values = calc.stack.pop(arg_count)
-            result = f(*values)
-            calc.stack.push(result)
-        return wrapper
-    return decorator
+    @operation('pow', aliases=['**', '^'], type='stack', arg_count=2,
+               add_plain=True)
+    def power(x, y):
+        return y ** x
+
+    @operation('root', type='stack', arg_count=2, add_plain=True)
+    def root(x, y):
+        """Xth root of Y."""
+        return y ** (1 / x)
+
+    @operation('log', type='stack', arg_count=2, add_plain=True)
+    def log(x, y):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5  # increase precision for intermediate steps
+            result = y.log10() / x.log10()  # log_x(y)
+        return +result  # round back to previous precision
+
+    # trigonometric functions
+
+    @operation('sin', type='stack', arg_count=1, add_plain=True)
+    def sin(x):
+        return _sin(x)
+
+    @operation('cos', type='stack', arg_count=1, add_plain=True)
+    def cos(x):
+        return _cos(x)
+
+    @operation('tan', type='stack', arg_count=1, add_plain=True)
+    def tan(x):
+        return _tan(x)
+
+    @operation('cot', type='stack', arg_count=1, add_plain=True)
+    def cot(x):
+        return _cot(x)
+
+    @operation('arctan', type='stack', arg_count=1, add_plain=True)
+    def arctan(x):
+        return _arctan(x)
+
+    @operation('arccot', type='stack', arg_count=1, add_plain=True)
+    def arccot(x):
+        return _arccot(x)
+
+    @operation('arcsin', type='stack', arg_count=1, add_plain=True)
+    def arcsin(x):
+        return _arcsin(x)
+
+    @operation('arccos', type='stack', arg_count=1, add_plain=True)
+    def arccos(x):
+        return _arccos(x)
 
 
 def compute_to_precision(init_factor, step_factor):
@@ -152,88 +209,6 @@ def compute_to_precision(init_factor, step_factor):
 
         return wrapper
     return decorator
-
-
-@module.add_operation('add', aliases=['+'])
-@simple_arith_operation(2)
-def add(x, y):
-    return y + x
-
-
-@module.add_operation('sub', aliases=['-'])
-@simple_arith_operation(2)
-def sub(x, y):
-    return y - x
-
-
-@module.add_operation('mul', aliases=['*'])
-@simple_arith_operation(2)
-def mul(x, y):
-    return y * x
-
-
-@module.add_operation('div', aliases=['/'])
-@simple_arith_operation(2)
-def div(x, y):
-    return y / x
-
-
-@module.add_operation('inv')
-@simple_arith_operation(1)
-def inv(x):
-    return 1 / x
-
-
-@module.add_operation('sqrt')
-@simple_arith_operation(1)
-def sqrt(x):
-    return x.sqrt()
-
-
-@module.add_operation('sqr', aliases=['^2'])
-@simple_arith_operation(1)
-def sqr(x):
-    return x * x
-
-
-@module.add_operation('exp')
-@simple_arith_operation(1)
-def exp(x):
-    return x.exp()
-
-
-@module.add_operation('ln')
-@simple_arith_operation(1)
-def ln(x):
-    return x.ln()
-
-
-@module.add_operation('log10', aliases=['lg'])
-@simple_arith_operation(1)
-def log10(x):
-    return x.log10()
-
-
-@module.add_operation('pow', aliases=['**', '^'])
-@simple_arith_operation(2)
-def power(x, y):
-    return y ** x
-
-
-@module.add_operation('root')
-@simple_arith_operation(2)
-def root(x, y):
-    """Xth root of Y."""
-    return y ** (1 / x)
-
-
-@module.add_operation('log')
-@simple_arith_operation(2)
-def log(x, y):
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # increase precision for intermediate steps
-        result = y.log10() / x.log10()  # log_x(y)
-    return +result  # round back to previous precision
 
 
 def _calc_pi(cache={}):
@@ -293,12 +268,6 @@ def _sin(x):
     return +s  # round back to previous precision
 
 
-@module.add_operation('sin')
-@simple_arith_operation(1)
-def sin(x):
-    return _sin(x)
-
-
 def _cos(x):
     """
     Calculate ``cos(x)`` using the Taylor series:
@@ -325,12 +294,6 @@ def _cos(x):
     return +s  # round back to previous precision
 
 
-@module.add_operation('cos')
-@simple_arith_operation(1)
-def cos(x):
-    return _cos(x)
-
-
 @compute_to_precision(1, 1.1)
 def _tan(x):
     """
@@ -340,12 +303,6 @@ def _tan(x):
     return _sin(x) / _cos(x)
 
 
-@module.add_operation('tan')
-@simple_arith_operation(1)
-def tan(x):
-    return _tan(x)
-
-
 @compute_to_precision(1, 1.1)
 def _cot(x):
     """
@@ -353,12 +310,6 @@ def _cot(x):
         \cot(x) = \frac{ \cos(x) }{ \sin(x) }
     """
     return _cos(x) / _sin(x)
-
-
-@module.add_operation('cot')
-@simple_arith_operation(1)
-def cot(x):
-    return _cot(x)
 
 
 def _arctan(x):
@@ -395,12 +346,6 @@ def _arctan(x):
     return +s  # round back to previous precision
 
 
-@module.add_operation('arctan')
-@simple_arith_operation(1)
-def arctan(x):
-    return _arctan(x)
-
-
 def _arccot(x):
     """
     Calculate ``arccot(x)`` using:
@@ -412,12 +357,6 @@ def _arccot(x):
         pi = _calc_pi()
         result = pi / 2 - _arctan(x)
     return + result  # round back to previous precision
-
-
-@module.add_operation('arccot')
-@simple_arith_operation(1)
-def arccot(x):
-    return _arccot(x)
 
 
 def _arcsin(x):
@@ -445,12 +384,6 @@ def _arcsin(x):
     return +result  # round back to previous precision
 
 
-@module.add_operation('arcsin')
-@simple_arith_operation(1)
-def arcsin(x):
-    return _arcsin(x)
-
-
 def _arccos(x):
     """
     Calculate ``arccos(x)`` using:
@@ -464,11 +397,5 @@ def _arccos(x):
     return +result  # round back to previous precision
 
 
-@module.add_operation('arccos')
-@simple_arith_operation(1)
-def arccos(x):
-    return _arccos(x)
-
-
 def get_modules(calc):
-    return [module]
+    return [DecimalModule()]
