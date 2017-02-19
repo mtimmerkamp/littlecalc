@@ -276,6 +276,14 @@ class Operation:
             return self.methods[name]
         return super().__getattribute__(name)
 
+    def has_name(self, name):
+        """
+        Returns whether this operation is named ``name`` or has an alias
+        ``name``.
+        """
+        return self.name == name or (
+            self.aliases is not None and name in self.aliases)
+
     def get_callable(self, type, calc=None, module=None):
         """
         Returns a callable for the requested method ``type``. ``calc`` and
@@ -536,9 +544,7 @@ class Module(metaclass=ModuleMeta):
 
     def _get_operation(self, name):
         for operation in self._operations.values():
-            if operation.name == name:
-                return operation
-            elif name in operation.aliases:
+            if operation.has_name(name):
                 return operation
         raise NoSuchOperation('operation {!r} not found'.format(name))
 
@@ -652,7 +658,7 @@ class Calculator:
         self.modules.append(module)
 
     def unload_module(self, module):
-        module.unload_module(self)
+        module.unload_module()
         self.modules.remove(module)
 
     def register_numeric_type(self, cls):
@@ -696,7 +702,7 @@ class Calculator:
     def do_operation(self, name):
         """Invokes the desired operation."""
         module = self.find_module_of_operation(name)
-        module.do_operation(self, name)
+        module.do_operation(name)
 
     def parse_input(self, input_):
         self.input_stream = ConsumingInputStream(input_.split())
@@ -716,10 +722,13 @@ class Calculator:
 def main():
     calc = Calculator()
 
-    module = importlib.import_module('littlecalc.modules.decimal')
-    calc.load_module(module.get_modules(calc)[0])
+    # module = importlib.import_module('littlecalc.modules.decimal')
+    # calc.load_module(module.get_modules(calc)[0])
 
-    module = importlib.import_module('littlecalc.modules.constants')
+    # module = importlib.import_module('littlecalc.modules.constants')
+    # calc.load_module(module.get_modules(calc)[0])
+
+    module = importlib.import_module('littlecalc.modules.builtins')
     calc.load_module(module.get_modules(calc)[0])
 
     while True:
