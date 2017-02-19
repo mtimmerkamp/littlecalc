@@ -34,6 +34,8 @@ where "sto" pulls one word from the stream to use it as a parameter.
 import abc
 import functools
 import importlib
+import importlib.util
+import traceback
 from collections import deque
 
 
@@ -54,6 +56,10 @@ class NotNumeric(CalculatorError):
 
 
 class AliasingError(CalculatorError):
+    pass
+
+
+class ModuleLoadError(CalculatorError):
     pass
 
 
@@ -653,9 +659,46 @@ class Calculator:
         self.modules = []
         self.numeric_types = []
 
+    def load_module_by_name(self, module_name):
+        # try to load "littlecalc.modules.MODULE_NAME" first
+        full_name = 'littlecalc.modules.{}'.format(module_name)
+        spec = importlib.util.find_spec(full_name)
+
+        if spec is None:
+            # try to load module with given name directly
+            spec = importlib.util.find_spec(module_name)
+
+        if spec is None:
+            raise CalculatorError(
+                'module {!r} cannot be found'.format(module_name))
+
+        module = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(module)
+        except Exception as err:
+            raise ModuleLoadError(
+                'error loading module {!r}'.format(module_name)) from err
+
+        calc_modules = module.get_modules(self)
+        # TODO: for now load all modules
+        for calc_module in calc_modules:
+            self.load_module(calc_module)
+
     def load_module(self, module):
         module.load_module(self)
         self.modules.append(module)
+
+    def unload_module_by_name(self, module_name):
+        module_to_unload = None
+        for module in self.modules:
+            if module_name == module.name:
+                module_to_unload = module
+                break
+
+        if module_name is None:
+            raise CalculatorError('no such module {!r}'.format(module_name))
+
+        self.unload_module(module_to_unload)
 
     def unload_module(self, module):
         module.unload_module()
@@ -722,19 +765,18 @@ class Calculator:
 def main():
     calc = Calculator()
 
-    # module = importlib.import_module('littlecalc.modules.decimal')
-    # calc.load_module(module.get_modules(calc)[0])
-
-    # module = importlib.import_module('littlecalc.modules.constants')
-    # calc.load_module(module.get_modules(calc)[0])
-
-    module = importlib.import_module('littlecalc.modules.builtins')
-    calc.load_module(module.get_modules(calc)[0])
+    calc.load_module_by_name('builtins')
+    calc.load_module_by_name('decimal')
+    calc.load_module_by_name('constants')
 
     while True:
         user_input = input('>>> ')
 
-        calc.parse_input(user_input)
+        try:
+            calc.parse_input(user_input)
+        except CalculatorError:
+            print('An error occurred:')
+            traceback.print_exc()
 
         max_depth = min(len(calc.stack.stack), 4)
         if max_depth > 0:

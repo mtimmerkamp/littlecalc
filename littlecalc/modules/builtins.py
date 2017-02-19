@@ -1,4 +1,6 @@
-from littlecalc.core import Module, CalculatorError, operation
+import sys
+import traceback
+from littlecalc.core import Module, CalculatorError, ModuleLoadError, operation
 
 
 class BuiltinsModule(Module):
@@ -90,6 +92,28 @@ class BuiltinsModule(Module):
         if calc.stack.lastx is not None:
             calc.stack.push(calc.stack.lastx)
     lastx.add('remote', from_type='calc')
+
+    @operation('loadmod', type='calc')
+    def loadmod(self, calc):
+        if calc.input_stream.has_next():
+            module_name = calc.input_stream.pop()
+        else:
+            raise CalculatorError('argument missing')
+
+        try:
+            calc.load_module_by_name(module_name)
+        except ModuleLoadError as err:
+            # TODO do not use print
+            print('An error occurred loading module {!r}'.format(module_name))
+            traceback.print_exc()
+
+    @operation('unloadmod', type='calc')
+    def unloadmod(self, calc):
+        if calc.input_stream.has_next():
+            module_name = calc.input_stream.pop()
+        else:
+            raise CalculatorError('argument missing')
+        calc.unload_module_by_name(module_name)
 
 
 def get_modules(calc):
