@@ -130,6 +130,26 @@ class DecimalModule(Module):
             result = y.log10() / x.log10()  # log_x(y)
         return +result  # round back to previous precision
 
+    @operation('abs', type='stack', arg_count=1, add_plain=True)
+    def abs(x):
+        return abs(x)
+
+    @operation('floor', type='stack', arg_count=1, add_plain=True)
+    def floor(x):
+        return DecimalConverter.to_numeric(math.floor(x))
+
+    @operation('ceil', type='stack', arg_count=1, add_plain=True)
+    def ceil(x):
+        return DecimalConverter.to_numeric(math.ceil(x))
+
+    @operation('min', type='stack', arg_count=2, add_plain=True)
+    def min(x, y):
+        return min(x, y)
+
+    @operation('max', type='stack', arg_count=2, add_plain=True)
+    def max(x, y):
+        return max(x, y)
+
     # trigonometric functions
 
     @operation('sin', type='stack', arg_count=1, add_plain=True)
