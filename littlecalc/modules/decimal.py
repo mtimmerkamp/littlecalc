@@ -164,6 +164,56 @@ class DecimalModule(Module):
     def arccos(x):
         return _arccos(x)
 
+    @operation('sinh', type='stack', arg_count=1, add_plain=True)
+    def sinh(x):
+        return (x.exp() - (-x).exp()) / 2
+
+    @operation('cosh', type='stack', arg_count=1, add_plain=True)
+    def cosh(x):
+        return (x.exp() + (-x).exp()) / 2
+
+    @operation('tanh', type='stack', arg_count=1, add_plain=True)
+    def tanh(x):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5
+            value = DecimalModule.sinh(x) / DecimalModule.cosh(x)
+        return +value  # round back to previous precision
+
+    @operation('coth', type='stack', arg_count=1, add_plain=True)
+    def coth(x):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5
+            value = DecimalModule.cosh(x) / DecimalModule.sinh(x)
+        return +value  # round back to previous precision
+
+    @operation('arcsinh', type='stack', arg_count=1, add_plain=True)
+    def arcsinh(x):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5  # increase precision for intermediate steps
+            result = (x + DecimalModule.sqrt(x**2 + 1)).ln()
+        return +result  # round back to previous precision
+
+    @operation('arccosh', type='stack', arg_count=1, add_plain=True)
+    def arccosh(x):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5  # increase precision for intermediate steps
+            result = (x + DecimalModule.sqrt(x**2 - 1)).ln()
+        return +result  # round back to previous precision
+
+    @operation('arctanh', type='stack', arg_count=1, add_plain=True)
+    def arctanh(x):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5  # increase precision for intermediate steps
+            result = ((1 + x) / (1 - x)).ln() / 2
+        return +result  # round back to previous precision
+
+    @operation('arccoth', type='stack', arg_count=1, add_plain=True)
+    def arccoth(x):
+        with decimal.localcontext() as ctx:
+            ctx.prec += 5  # increase precision for intermediate steps
+            result = ((x + 1) / (x - 1)).ln() / 2
+        return +result  # round back to previous precision
+
 
 def compute_to_precision(init_factor, step_factor):
     """
