@@ -27,7 +27,7 @@ class BuiltinsModule(Module):
     def recall(calc, source):
         value = calc.storage[source]
         calc.stack.push(value)
-    store.add('remote', pass_module=False)
+    recall.add('remote', pass_module=False)
 
     @recall.add('calc')
     def recall(self, calc):

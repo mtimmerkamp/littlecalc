@@ -15,7 +15,7 @@ Currently there are three builtin modules:
  * `decimal`: This module uses Python's decimal module to implement common operations on real numbers with arbitrary precision.
  * `constants`: This module supplies some important mathematical and physical constants.
 
-Both of these are currently loaded by default when starting the program.
+All of these are currently loaded by default when starting the program.
 
 
 ## Planned features
