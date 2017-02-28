@@ -124,7 +124,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'littlecalc=littlecalc.core:main',
+            'littlecalc=littlecalc.tui:main',
         ],
     },
 )

@@ -760,30 +760,3 @@ class Calculator:
                 print('UNKNOWN INPUT:', word)
 
         self.input_stream = None
-
-
-def main():
-    calc = Calculator()
-
-    calc.load_module_by_name('builtins')
-    calc.load_module_by_name('decimal')
-    calc.load_module_by_name('constants')
-
-    while True:
-        user_input = input('>>> ')
-
-        try:
-            calc.parse_input(user_input)
-        except CalculatorError:
-            print('An error occurred:')
-            traceback.print_exc()
-
-        max_depth = min(len(calc.stack.stack), 4)
-        if max_depth > 0:
-            for i, level_name in enumerate('TZYX'[-max_depth:]):
-                value = calc.stack.stack[-max_depth + i]
-                print('{}: {}'.format(level_name, value))
-
-
-if __name__ == '__main__':
-    main()
