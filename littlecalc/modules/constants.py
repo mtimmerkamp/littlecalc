@@ -123,8 +123,7 @@ class ConstantsModule(Module):
         try:
             value = self.const(self, calc, constant_id)
         except ConstantError as err:
-            # TODO: add error handling/output to Calculator
-            traceback.print_exc()
+            calc.output(traceback.format_exc())
         else:
             calc.stack.push(value)
 

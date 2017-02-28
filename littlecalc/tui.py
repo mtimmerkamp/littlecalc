@@ -16,12 +16,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import traceback
+import readline
 
 from littlecalc.core import Calculator, CalculatorError
 
 
+class TUICalculator(Calculator):
+
+    def __init__(self):
+        super().__init__()
+
+    def output(self, text):
+        print(text)
+
+
 def main():
-    calc = Calculator()
+    calc = TUICalculator()
 
     calc.load_module_by_name('builtins')
     calc.load_module_by_name('decimal')

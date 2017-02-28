@@ -103,9 +103,9 @@ class BuiltinsModule(Module):
         try:
             calc.load_module_by_name(module_name)
         except ModuleLoadError as err:
-            # TODO do not use print
-            print('An error occurred loading module {!r}'.format(module_name))
-            traceback.print_exc()
+            calc.output(
+                'An error occurred loading module {!r}'.format(module_name))
+            calc.output(traceback.format_exc())
 
     @operation('unloadmod', type='calc')
     def unloadmod(self, calc):

@@ -760,3 +760,10 @@ class Calculator:
                 print('UNKNOWN INPUT:', word)
 
         self.input_stream = None
+
+    def output(self, text):
+        """
+        Output ``text`` to the user. Inserts a new line character after
+        printing.
+        """
+        raise NotImplementedError()
