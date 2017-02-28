@@ -36,6 +36,38 @@ class DecimalConverter(NumericConverter):
         return decimal.Decimal(word)
 
 
+def increase_precision(add=5):
+    """
+    Increase decimal precision before calculation and round result back to
+    original precision. This function returns a decorating function.
+
+    In the following examlpe::
+
+        @increase_precision(add=10)
+        def sin(x):
+            # ... calculate result ...
+            return result
+
+    ``result`` is calculated with an additional precision of 10 digits. But
+    before this result is passed to the caller, it is rounded back to original
+    precision.
+    """
+    def decorating_function(func):
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with decimal.localcontext() as ctx:
+                ctx.prec += add  # increase precision for intermediate steps
+
+                result = func(*args, **kwargs)
+
+            return +result  # round back to previous precision
+
+        return wrapper
+
+    return decorating_function
+
+
 class DecimalModule(Module):
 
     def __init__(self):
@@ -66,8 +98,7 @@ class DecimalModule(Module):
 
     @operation('prec?', type='calc')
     def prec_show(self, calc):
-        # TODO: Do not just print to stdout, but use some method of Calculator
-        print('current precision:', decimal.getcontext().prec)
+        calc.output('current precision: {}'.format(decimal.getcontext().prec))
 
     # basic mathematical operations
 
@@ -124,11 +155,9 @@ class DecimalModule(Module):
         return y ** (1 / x)
 
     @operation('log', type='stack', arg_count=2, add_plain=True)
+    @increase_precision(5)
     def log(x, y):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5  # increase precision for intermediate steps
-            result = y.log10() / x.log10()  # log_x(y)
-        return +result  # round back to previous precision
+        return y.log10() / x.log10()  # log_x(y)
 
     @operation('abs', type='stack', arg_count=1, add_plain=True)
     def abs(x):
@@ -193,46 +222,34 @@ class DecimalModule(Module):
         return (x.exp() + (-x).exp()) / 2
 
     @operation('tanh', type='stack', arg_count=1, add_plain=True)
+    @increase_precision(5)
     def tanh(x):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5
-            value = DecimalModule.sinh(x) / DecimalModule.cosh(x)
-        return +value  # round back to previous precision
+        return DecimalModule.sinh(x) / DecimalModule.cosh(x)
 
     @operation('coth', type='stack', arg_count=1, add_plain=True)
+    @increase_precision(5)
     def coth(x):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5
-            value = DecimalModule.cosh(x) / DecimalModule.sinh(x)
-        return +value  # round back to previous precision
+        return DecimalModule.cosh(x) / DecimalModule.sinh(x)
 
     @operation('arcsinh', type='stack', arg_count=1, add_plain=True)
+    @increase_precision(5)
     def arcsinh(x):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5  # increase precision for intermediate steps
-            result = (x + DecimalModule.sqrt(x**2 + 1)).ln()
-        return +result  # round back to previous precision
+        return (x + DecimalModule.sqrt(x**2 + 1)).ln()
 
     @operation('arccosh', type='stack', arg_count=1, add_plain=True)
+    @increase_precision(5)
     def arccosh(x):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5  # increase precision for intermediate steps
-            result = (x + DecimalModule.sqrt(x**2 - 1)).ln()
-        return +result  # round back to previous precision
+        return (x + DecimalModule.sqrt(x**2 - 1)).ln()
 
     @operation('arctanh', type='stack', arg_count=1, add_plain=True)
+    @increase_precision(5)
     def arctanh(x):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5  # increase precision for intermediate steps
-            result = ((1 + x) / (1 - x)).ln() / 2
-        return +result  # round back to previous precision
+        return ((1 + x) / (1 - x)).ln() / 2
 
     @operation('arccoth', type='stack', arg_count=1, add_plain=True)
+    @increase_precision(5)
     def arccoth(x):
-        with decimal.localcontext() as ctx:
-            ctx.prec += 5  # increase precision for intermediate steps
-            result = ((x + 1) / (x - 1)).ln() / 2
-        return +result  # round back to previous precision
+        return ((x + 1) / (x - 1)).ln() / 2
 
 
 def compute_to_precision(init_factor, step_factor):
@@ -311,60 +328,59 @@ def _calc_pi(cache={}):
     return v
 
 
+@increase_precision(5)
 def _sin(x):
     """
     Calculate ``sin(x)`` using the Taylor series:
         \sin(x) =
             \sum_{n=0}^{\infinity} (-1)^n \frac{ x^{2n + 1} }{ (2n + 1)! }
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # additional precision for intermediate steps
 
-        pi = _calc_pi()
-        x = x % (2 * pi)  # cos works best for small x
+    pi = _calc_pi()
+    x = x % (2 * pi)  # cos works best for small x
 
-        s, lasts = x, 0
-        i, num, fac, sign = 1, x, 1, 1
+    s, lasts = x, 0
+    i, num, fac, sign = 1, x, 1, 1
 
-        while s != lasts:
-            lasts = s
+    while s != lasts:
+        lasts = s
 
-            i += 2
-            fac *= i * (i - 1)
-            num *= x * x
-            sign *= -1
+        i += 2
+        fac *= i * (i - 1)
+        num *= x * x
+        sign *= -1
 
-            s += num / fac * sign
-    return +s  # round back to previous precision
+        s += num / fac * sign
+    return s
 
 
+@increase_precision(5)
 def _cos(x):
     """
     Calculate ``cos(x)`` using the Taylor series:
         \cos(x) = \sum_{n=0}^{\infinity} (-1)^n \frac{ x^{2n} }{ (2n)! }
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # additional precision for intermediate steps
 
-        pi = _calc_pi()
-        x = x % (2 * pi)  # cos works best for small x
+    pi = _calc_pi()
+    x = x % (2 * pi)  # cos works best for small x
 
-        s, lasts = 1, 0
-        i, num, fac, sign = 0, 1, 1, 1
+    s, lasts = 1, 0
+    i, num, fac, sign = 0, 1, 1, 1
 
-        while s != lasts:
-            lasts = s
+    while s != lasts:
+        lasts = s
 
-            i += 2
-            fac *= i * (i - 1)
-            num *= x * x
-            sign *= -1
+        i += 2
+        fac *= i * (i - 1)
+        num *= x * x
+        sign *= -1
 
-            s += num / fac * sign
-    return +s  # round back to previous precision
+        s += num / fac * sign
+    return s
 
 
-@compute_to_precision(1, 1.1)
+# @compute_to_precision(1, 1.1)
+@increase_precision(5)
 def _tan(x):
     """
     Calculate ``tan(x)`` using:
@@ -373,7 +389,8 @@ def _tan(x):
     return _sin(x) / _cos(x)
 
 
-@compute_to_precision(1, 1.1)
+# @compute_to_precision(1, 1.1)
+@increase_precision(5)
 def _cot(x):
     """
     Calculate ``cot(x)`` using:
@@ -382,6 +399,7 @@ def _cot(x):
     return _cos(x) / _sin(x)
 
 
+@increase_precision(5)
 def _arctan(x):
     """
     Calculate ``arctan(x)`` using:
@@ -391,44 +409,40 @@ def _arctan(x):
     used:
         \arctan(x) = 2 \arctan \frac{ x }{ x + \sqrt{ 1 + x^2 } }
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # additional precision for intermediate steps
+    if abs(x) >= 0.9:  # improve convergence for |x| ~ 1
+        _0p5 = x / x / 2
+        x = x / (1 + (1 + x**2)**_0p5)
+        s = 2 * _arctan(x)
+    else:
+        s = x
+        lasts = 0
+        num = x
+        sign = 1
+        k = 0
 
-        if abs(x) >= 0.9:  # improve convergence for |x| ~ 1
-            _0p5 = x / x / 2
-            x = x / (1 + (1 + x**2)**_0p5)
-            s = 2 * _arctan(x)
-        else:
-            s = x
-            lasts = 0
-            num = x
-            sign = 1
-            k = 0
+        while s != lasts:
+            lasts = s
+            k += 1
 
-            while s != lasts:
-                lasts = s
-                k += 1
+            sign *= -1
+            num *= x * x
 
-                sign *= -1
-                num *= x * x
+            s += sign * num / (2 * k + 1)
 
-                s += sign * num / (2 * k + 1)
-    return +s  # round back to previous precision
+    return +s
 
 
+@increase_precision(5)
 def _arccot(x):
     """
     Calculate ``arccot(x)`` using:
         \arccot(x) = \frac{ \pi }{ 2 } - \arctan(x)
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # additional precision for intermediate steps
-
-        pi = _calc_pi()
-        result = pi / 2 - _arctan(x)
-    return + result  # round back to previous precision
+    pi = _calc_pi()
+    return pi / 2 - _arctan(x)
 
 
+@increase_precision(5)
 def _arcsin(x):
     """
     Calculate ``arcsin(x)`` using:
@@ -438,33 +452,28 @@ def _arcsin(x):
         \arcsin(|x| = 1) = \sgn(x) \frac{ \pi }{ 2 }
     for |x| = 1.
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # additional precision for intermediate steps
+    sgn = -1 if x < 0 else 1
+    if x == 1:
+        pi = _calc_pi()
 
-        sgn = -1 if x < 0 else 1
-        if x == 1:
-            pi = _calc_pi()
+        result = sgn * pi / 2
+    else:
+        _0p5 = x / x / 2
+        arg = (x**2 / (1 - x**2))**_0p5
 
-            result = sgn * pi / 2
-        else:
-            _0p5 = x / x / 2
-            arg = (x**2 / (1 - x**2))**_0p5
+        result = sgn * _arctan(arg)
 
-            result = sgn * _arctan(arg)
-    return +result  # round back to previous precision
+    return result
 
 
+@increase_precision(5)
 def _arccos(x):
     """
     Calculate ``arccos(x)`` using:
         \arccos(x) = \frac{ \pi }{ 2 } - \arcsin(x)
     """
-    with decimal.localcontext() as ctx:
-        ctx.prec += 5  # additional precision for intermediate steps
-
-        pi = _calc_pi()
-        result = pi / 2 - _arcsin(x)
-    return +result  # round back to previous precision
+    pi = _calc_pi()
+    return pi / 2 - _arcsin(x)
 
 
 def get_modules(calc):
