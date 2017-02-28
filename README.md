@@ -9,8 +9,9 @@ It might even become programmable to some extend (that means not using modules b
 
 ## Modules
 
-Currently there are two builtin modules:
+Currently there are three builtin modules:
 
+ * `builtins`: Contains several general operations useful for rpn calculators.
  * `decimal`: This module uses Python's decimal module to implement common operations on real numbers with arbitrary precision.
  * `constants`: This module supplies some important mathematical and physical constants.
 
@@ -20,11 +21,11 @@ Both of these are currently loaded by default when starting the program.
 ## Planned features
 
  * History and simple editing at the prompt.
+  * Save history to file?
  * Support for evaluating formulas (probably only if notated in rpn).
  * User and developer documentation...
 
  * For module `decimal`:
-  * Hyperbolic functions (sinh, cosh, tanh) and its inverse counterparts.
   * Validate implemented mathematical algorithms to be correct.
 
 
@@ -32,10 +33,10 @@ Both of these are currently loaded by default when starting the program.
 
 Python >= 3.5 is required.
 
-To run from source:
+To run interactive prompt from source:
 
 ```
-python -m littlecalc.core
+python -m littlecalc.tui
 ```
 
 
