@@ -36,7 +36,7 @@ class DecimalConverter(NumericConverter):
         return decimal.Decimal(word)
 
 
-def increase_precision(add=5):
+def increase_precision(add=5, mul=1):
     """
     Increase decimal precision before calculation and round result back to
     original precision. This function returns a decorating function.
@@ -57,6 +57,7 @@ def increase_precision(add=5):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             with decimal.localcontext() as ctx:
+                ctx.prec *= mul
                 ctx.prec += add  # increase precision for intermediate steps
 
                 result = func(*args, **kwargs)
@@ -380,7 +381,7 @@ def _cos(x):
 
 
 # @compute_to_precision(1, 1.1)
-@increase_precision(5)
+@increase_precision(add=0, mul=2)
 def _tan(x):
     """
     Calculate ``tan(x)`` using:
@@ -390,7 +391,7 @@ def _tan(x):
 
 
 # @compute_to_precision(1, 1.1)
-@increase_precision(5)
+@increase_precision(add=0, mul=2)
 def _cot(x):
     """
     Calculate ``cot(x)`` using:
